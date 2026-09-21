@@ -1,3 +1,4 @@
 #Git lab
 My first DevOps repository.
-This change is on a feature branch.
+
+This repository is used to practice Git and GitHub workflows.
