@@ -1,0 +1,15 @@
+name: Bash check
+
+on:
+  push:
+  pull_request:
+
+jobs: 
+  check-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Bash syntax
+        run: bash -n deploy.sh 
