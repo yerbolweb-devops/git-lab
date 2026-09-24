@@ -10,8 +10,13 @@ if [ ! -d "$source_dir" ]; then
     exit 1
 fi
 
-echo "Deploying $source_dir to $target_dir..."
 
+if [ ! -f "$source_dir/index.html" ]; then
+    echo "Error: homepage $source_dir/index.html does not exist."
+    exit 1
+fi
+
+echo "Deploying $source_dir to $target_dir..."
 sudo cp -r "$source_dir"/. "$target_dir"/
 
 echo "Deployment completed."
