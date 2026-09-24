@@ -13,3 +13,6 @@ jobs:
 
       - name: Check Bash syntax
         run: bash -n deploy.sh 
+
+      - name: Check homepage exists
+        run: test -f site/index.html
