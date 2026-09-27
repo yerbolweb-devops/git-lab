@@ -16,3 +16,5 @@ jobs:
 
       - name: Check homepage exists
         run: test -f site/index.html
+      - name: Build Docker image
+        run: docker build -t bakery-site:ci .
