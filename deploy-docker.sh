@@ -10,5 +10,6 @@ docker rm -f bakery-check
 
 docker rm -f bakery-live
 docker run -d --name bakery-live -p 8082:80 bakery-site:latest
+sleep 2
 curl -fsS http://localhost:8082/ > /dev/null
 
