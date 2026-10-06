@@ -22,3 +22,30 @@ jobs:
         run: |
           docker build -t ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }} .
           docker push ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }}
+  deploy:
+    needs: publish
+    runs-on: self-hosted
+    
+
+    steps: 
+      - name: Pull new image
+        run: docker pull ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }}
+      - name: Replace container
+        run: |
+          docker rm -f bakery-backup 2>/dev/null || true
+          docker stop bakery-live
+          docker rename bakery-live bakery-backup
+          docker run -d -p 8082:80 --name bakery-live ghcr.io/yerbolweb-devops-site:${{ github.sha }}
+      - name: Check and rollback
+        run: |
+          if curl -f localhost:8082; then 
+            echo "Deployment successful"
+            docker rm bakery-backup
+          else
+            echo "Deployment failed. Rolling back"
+            docker rm -f bakery-live
+            docker raname bakery-backup bakery-live
+            docker start bakery-live
+            exit 1 
+          fi 
+    
