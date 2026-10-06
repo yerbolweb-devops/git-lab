@@ -1,0 +1,15 @@
+name: Test self-hosted runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Test ubuntu3
+        run: |
+          echo "Hello from my self-hosted runner"
+          hostname
+          whoami
