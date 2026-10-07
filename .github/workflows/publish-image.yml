@@ -36,7 +36,22 @@ jobs:
           docker stop bakery-live
           docker rename bakery-live bakery-backup
 
-          if docker run -d -p 8082:80 --name bakery-live ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }} && curl -f --retry 5 --retry-delay 2 127.0.0.1:8082; then
+          docker run -d -p 8082:80 --name bakery-live ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }}
+
+          ready=false
+
+          for i in {1..15}; do
+            echo "Health check attempt $i/15"
+
+            if curl -f http://127.0.0.1:8082; then
+              ready=true
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$ready" = true ]; then
             echo "Deployment successful"
             docker rm bakery-backup
           else
