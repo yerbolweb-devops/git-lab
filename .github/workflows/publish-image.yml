@@ -30,20 +30,33 @@ jobs:
     steps: 
       - name: Pull new image
         run: docker pull ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }}
-      - name: Deploy with rollback
+      - name: New Version 
         run: |
-          docker rm -f bakery-backup 2>/dev/null || true
-          docker stop bakery-live
-          docker rename bakery-live bakery-backup
+      - name: Deploy new version
+        run: |
+          if grep -q "proxy_pass http://127.0.0.1:8082;" /etc/nginx/sites-available/default; then
+            ACTIVE_PORT=8082
+            NEED_PORT=8083
+          elif grep -q "proxy_pass http://127.0.0.1:8083;" /etc/nginx/sites-available/default; then
+            ACTIVE_PORT=8083
+            NEED_PORT=8082
+          else
+            echo "ERROR: cannot determine active Nginx backend"
+            exit 1
+          fi
 
-          docker run -d -p 8082:80 --name bakery-live ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }}
+          docker rm -f bakery-new 2>/dev/null || true
+
+          docker run -d -p ${NEED_PORT}:80 \
+            --name bakery-new \
+            ghcr.io/yerbolweb-devops/bakery-site:${{ github.sha }}
 
           ready=false
 
           for i in {1..15}; do
             echo "Health check attempt $i/15"
 
-            if curl -f http://127.0.0.1:8082; then
+            if curl -f http://127.0.0.1:${NEED_PORT}; then
               ready=true
               break
             fi
@@ -52,13 +65,25 @@ jobs:
           done
 
           if [ "$ready" = true ]; then
-            echo "Deployment successful"
-            docker rm bakery-backup
+            echo "New Versin is healthy. Switching traffic."
+            sudo /usr/local/sbin/switch-nginx-backend ${NEED_PORT}
+            if sudo /usr/sbin/nginx -t; then
+              sudo /usr/bin/systemctl reload nginx
+            else
+              echo "Nginx config test failed. Restoring old backend."
+
+              sudo /usr/local/sbin/switch-nginx-backend ${ACTIVE_PORT}
+
+              docker rm -f bakery-new 2>/dev/null || true
+              exit 1 
+            fi
+
           else
-            echo "Deployment failed. Rolling back"
-            docker rm -f bakery-live 2>/dev/null || true
-            docker rename bakery-backup bakery-live
-            docker start bakery-live
+            echo "New Version failed. Keeping Old Version."
+
+            docker rm -f bakery-new 2>/dev/null || true
+
             exit 1
           fi
     
+
